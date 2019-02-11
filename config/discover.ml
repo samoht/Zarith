@@ -3,10 +3,10 @@ module OV = Ocaml_version
 open Printf
 
 (* Returns arch, ccdef, opt (cc/as)  *)
-let x86_64_def = 
+let x86_64_def =
   "x86_64", ["-DZ_ELF";"-DZ_DOT_LABEL_PREFIX"], []
 
-let i686_def = 
+let i686_def =
   "i686", ["-DZ_ELF";"-DZ_DOT_LABEL_PREFIX"], []
 
 let cygwin_def word_size =
@@ -46,6 +46,34 @@ let extract_from_target word_size str =
   else
        no_def
 
+
+let inc_gmp = {|
+  #include <gmp.h>
+  int main() {return 0;}
+|}
+
+let inc_mpir = {|
+  #include <mpir.h>
+  int main() {return 0;}
+|}
+
+
+let check_code c code lib = C.c_test c code ~link_flags:["-l"^lib]
+
+let check_gmp c = match check_code c inc_gmp "gmp" with
+  | true -> Some ("-DHAS_GMP", "-lgmp")
+  | false -> None
+
+let check_mpir c = match check_code c inc_mpir "mpir" with
+  | true -> Some ("-DHAS_MPIR", "-lmpir")
+  | false -> None
+
+let check_gmp_or_mpir c =
+  match check_gmp c with
+  | None -> check_mpir c
+  | a -> a
+
+
 let () =
   C.main ~name:"zarith" (fun c ->
     let word_size = C.ocaml_config_var_exn c "word_size" in
@@ -54,8 +82,10 @@ let () =
     let stdlib_include = sprintf "-I%s" (C.ocaml_config_var_exn c "standard_library") in
     let cflags = stdlib_include :: ["-O3";"-Wall";"-Wextra"] in
     let defines = ["-DZ_OCAML_COMPARE_EXT"; "-DZ_OCAML_HASH"] in
-    (* TODO assume GMP not MPIR for now *)
-    let defines = "-DHAS_GMP" :: defines in
+    let defines, ldflags = match check_gmp_or_mpir c with
+    | Some (cflag,ldflag) -> cflag :: defines, [ldflag]
+    | None -> failwith "Cannot find GMP nor MPIR"
+    in
     let c_api_defines =
       match Ocaml_version.(compare ov Releases.v4_08) with
       |(-1) -> ["-DZ_OCAML_LEGACY_CUSTOM_OPERATIONS"]
@@ -63,7 +93,6 @@ let () =
     let defines = defines @ c_api_defines @ arch_defines in
     let cflags = cflags @ opt @ defines in
     let asflags = defines @ opt in
-    let ldflags = ["-lgmp"] in (* TODO detectionj *)
     C.Flags.write_sexp "cflags.sxp" cflags;
     C.Flags.write_lines "asflags" asflags;
     C.Flags.write_lines "cflags" cflags;
