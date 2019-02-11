@@ -68,23 +68,46 @@ let check_mpir c = match check_code c inc_mpir "mpir" with
   | true -> Some ("-DHAS_MPIR", "-lmpir")
   | false -> None
 
+let check_gmp_or_mpir_raw c =
+  if not(C.c_test c inc_gmp || C.c_test c inc_mpir)
+  then failwith "Couldn't find GMP or MPIR"
+
+
 let check_gmp_or_mpir c =
   match check_gmp c with
   | None -> check_mpir c
   | a -> a
 
+let param_cflags = ref []
+let param_ldflags = ref []
+
+let set_cflags str = param_cflags := String.split_on_char ' ' str
+let set_ldflags str = param_ldflags := String.split_on_char ' ' str
+
+let arg_cflags = ("-cflags", Arg.String set_cflags, "custom C flags")
+let arg_ldflags = ("-ldflags", Arg.String set_ldflags, "custom ld flags")
+
+let args = [arg_cflags; arg_ldflags]
 
 let () =
-  C.main ~name:"zarith" (fun c ->
+  C.main ~args ~name:"zarith" (fun c ->
     let word_size = C.ocaml_config_var_exn c "word_size" in
     let machine, arch_defines, opt = C.ocaml_config_var_exn c "target" |> extract_from_target word_size in
     let ov = C.ocaml_config_var_exn c "version" |> OV.of_string_exn in
     let stdlib_include = sprintf "-I%s" (C.ocaml_config_var_exn c "standard_library") in
     let cflags = stdlib_include :: ["-O3";"-Wall";"-Wextra"] in
     let defines = ["-DZ_OCAML_COMPARE_EXT"; "-DZ_OCAML_HASH"] in
-    let defines, ldflags = match check_gmp_or_mpir c with
-    | Some (cflag,ldflag) -> cflag :: defines, [ldflag]
-    | None -> failwith "Cannot find GMP nor MPIR"
+    let defines, ldflags =match !param_cflags, !param_ldflags with
+    | [], [] -> begin
+                  match check_gmp_or_mpir c with
+                  | Some (cflag,ldflag) -> cflag :: defines, [ldflag]
+                  | None -> failwith "Cannot find GMP nor MPIR"
+                end
+    | c_flags, ld_flags ->  begin
+                  match check_gmp_or_mpir c with
+                  | Some (cflag,_) -> cflag :: defines @ c_flags, ld_flags
+                  | None -> failwith "Cannot find GMP nor MPIR"
+                end
     in
     let c_api_defines =
       match Ocaml_version.(compare ov Releases.v4_08) with
