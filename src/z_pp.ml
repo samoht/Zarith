@@ -1,23 +1,24 @@
-let archname = ref ""
+
 let noalloc = ref true
 let version = ref "VERSION"
 let usage = "Usage: './z_pp architecture"
+let mli = ref false
+let ml = ref false
+let h = ref false
 
 let () =
-  Arg.parse 
+  Arg.parse
     ["-noalloc", Arg.Set noalloc, "noalloc attribute available";
-     "-ov", Arg.Set_string version, "ocaml compiler version"]
-    (fun name -> archname := name)
-    usage;
-  if !archname = "" 
-  then begin
-      print_endline usage; 
-      exit 1
-    end
+     "-ov", Arg.Set_string version, "ocaml compiler version";
+     "-mli", Arg.Set mli, "generate .mli";
+     "-ml", Arg.Set ml, "generate .ml";
+     "-h", Arg.Set h, "generate .h"]
+    (fun _ -> ())
+    usage
 
 let noalloc_str = if !noalloc then "[@@noalloc]" else "\"noalloc\""
 
-let asmfilename = "caml_z_" ^ !archname ^ ".S"
+let asmfilename = "caml_z_arch.S"
 
 module StringSet = Set.Make(String)
 
@@ -37,7 +38,7 @@ let () =
 	funcnames := StringSet.add funcname !funcnames
     done
   with
-    End_of_file -> 
+    End_of_file ->
       close_in input
 
 
@@ -58,7 +59,7 @@ let treat_file =
 	let line_in = input_line input in
         let line_in = Str.(global_replace (regexp "@VERSION") (Printf.sprintf "%S" !version) line_in) in
         let line_in = Str.(global_replace (regexp "@NOALLOC") noalloc_str line_in) in
-	let line_out = 
+	let line_out =
 	  if Str.string_match rASM line_in 0
 	  then
 	    let funcname = Str.matched_group 2 line_in in
@@ -75,7 +76,7 @@ let treat_file =
 	Printf.fprintf output "%s\n" line_out
       done
     with
-      End_of_file -> 
+      End_of_file ->
 	close_in input
 ;;
 
@@ -87,6 +88,6 @@ let generate_config filename =
   close_out oc
 ;;
 
-let _ = treat_file "ml"
-let _ = treat_file "mli"
-let _ = generate_config "z_features.h"
+let _ = if !ml then treat_file "ml"
+let _ = if !mli then treat_file "mli"
+let _ = if !h then generate_config "z_features.h"

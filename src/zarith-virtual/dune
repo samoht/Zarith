@@ -1,0 +1,27 @@
+(library
+  (name zarith_virtual)
+  (public_name zarith-virtual)
+  (virtual_modules z q big_int_Z)
+  (modules z q big_int_Z)
+  (wrapped false))
+
+(rule
+  (targets z.mli)
+  (deps (:script z_pp.exe) z_pp.ml z.mlip ../../META caml_z_arch.S)
+  (action (run %{script} -mli -ov %{ocaml_version} %{read-lines:../../config/arch})))
+
+(rule
+  (targets caml_z_arch.S)
+  (deps ../caml_z_arm.S ../caml_z_i686.S ../caml_z_x86_64.S ../caml_z_x86_64_mingw64.S)
+  (action (copy ../caml_z_%{read-lines:../../config/arch}.S caml_z_arch.S)))
+
+
+(executable
+ (name z_pp)
+ (modules z_pp)
+ (libraries str))
+
+(rule
+  (targets z_pp.ml)
+  (deps ../z_pp.ml)
+  (action (copy ../z_pp.ml z_pp.ml)))

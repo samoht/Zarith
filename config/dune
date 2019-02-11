@@ -1,10 +1,45 @@
+; One discover for all targets.
 (executable
  (name discover)
+ (modules discover ocaml_version)
  (libraries str dune.configurator))
 
-(rule
- (targets ldflags.sxp cflags.sxp cflags asflags arch)
- (deps discover.exe)
- (action (run ./discover.exe)))
+ (executable
+ (name get_arch)
+ (modules get_arch)
+ (libraries str dune.configurator))
 
+; Discover flags for unix target
+(rule
+ (targets base-ldflags.sxp base-cflags.sxp base-cflags base-asflags)
+ (deps discover.exe)
+ (action (run ./discover.exe -config base)))
+
+; discover flags for xen target -> we have to input flags we already know.
+(rule
+ (targets xen-ldflags.sxp xen-cflags.sxp xen-cflags xen-asflags)
+ (deps discover.exe)
+ (action (run ./discover.exe -config xen
+ -cflags "%{read-lines:cflags_xen}"
+ -ldflags "%{read-lines:ldflags_xen}"
+ )))
+
+; discover flags for freestanding target -> we have to input flags we already know.
+(rule
+ (targets freestanding-ldflags.sxp freestanding-cflags.sxp freestanding-cflags freestanding-asflags)
+ (deps discover.exe)
+ (action (run ./discover.exe -config freestanding
+ -cflags "%{read-lines:cflags_freestanding}"
+ -ldflags "%{read-lines:ldflags_freestanding}")))
+
+; discover base flags by pkg-config in opam switch (this can't be done in Dune.)
+(rule
+    (targets cflags_freestanding ldflags_freestanding cflags_xen ldflags_xen)
+    (action (run ./flags.sh))
+)
+
+(rule
+ (targets arch)
+ (deps get_arch.exe)
+ (action (run ./get_arch.exe)))
 

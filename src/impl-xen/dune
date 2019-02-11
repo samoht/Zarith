@@ -1,0 +1,29 @@
+(library
+  (name zarith_xen)
+  (public_name zarith-xen)
+  (c_library_flags (:include ../../config/xen-ldflags.sxp))
+  (self_build_stubs_archive (zarith_xen_c))
+  (modules z q big_int_Z)
+  (implements zarith-virtual))
+
+(rule
+ (targets libzarith_xen_c_stubs.a)
+ (deps   caml_z_arch.o caml_z.o)
+ (action (run ar rcs %{targets} %{deps})))
+
+(rule
+ (targets dllzarith_xen_c_stubs.so)
+ (deps   caml_z_arch.o caml_z.o)
+ (action (run %{cc} -shared -o %{targets} %{deps})))
+
+(rule
+  (targets caml_z_arch.o)
+  (deps (:s caml_z_arch.S) zarith.h)
+  (action (run %{cc} %{read-lines:../../config/xen-asflags} -c %{s} -o %{targets})))
+
+(rule
+  (targets caml_z.o)
+  (deps (:c caml_z.c) zarith.h z_features.h)
+  (action (run %{cc} %{read-lines:../../config/xen-cflags} -c %{c} -o %{targets})))
+
+(include ../dune.inc)

@@ -80,19 +80,22 @@ let check_gmp_or_mpir c =
 
 let param_cflags = ref []
 let param_ldflags = ref []
+let output = ref ""
 
-let set_cflags str = param_cflags := String.split_on_char ' ' str
-let set_ldflags str = param_ldflags := String.split_on_char ' ' str
+let set_cflags str = param_cflags := String.trim str |> String.split_on_char ' '
+let set_ldflags str = param_ldflags := String.trim str |> String.split_on_char ' '
 
 let arg_cflags = ("-cflags", Arg.String set_cflags, "custom C flags")
 let arg_ldflags = ("-ldflags", Arg.String set_ldflags, "custom ld flags")
+let arg_output = ("-config", Arg.Set_string output, "output prefix")
 
-let args = [arg_cflags; arg_ldflags]
+let args = [arg_cflags; arg_ldflags; arg_output]
 
 let () =
   C.main ~args ~name:"zarith" (fun c ->
+    if !output != "" then output := !output^"-";
     let word_size = C.ocaml_config_var_exn c "word_size" in
-    let machine, arch_defines, opt = C.ocaml_config_var_exn c "target" |> extract_from_target word_size in
+    let _machine, arch_defines, opt = C.ocaml_config_var_exn c "target" |> extract_from_target word_size in
     let ov = C.ocaml_config_var_exn c "version" |> OV.of_string_exn in
     let stdlib_include = sprintf "-I%s" (C.ocaml_config_var_exn c "standard_library") in
     let cflags = stdlib_include :: ["-O3";"-Wall";"-Wextra"] in
@@ -116,8 +119,7 @@ let () =
     let defines = defines @ c_api_defines @ arch_defines in
     let cflags = cflags @ opt @ defines in
     let asflags = defines @ opt in
-    C.Flags.write_sexp "cflags.sxp" cflags;
-    C.Flags.write_lines "asflags" asflags;
-    C.Flags.write_lines "cflags" cflags;
-    C.Flags.write_sexp "ldflags.sxp" ldflags;
-    C.Flags.write_lines "arch" [machine])
+    C.Flags.write_sexp (!output^"cflags.sxp") cflags;
+    C.Flags.write_lines (!output^"asflags") asflags;
+    C.Flags.write_lines (!output^"cflags") cflags;
+    C.Flags.write_sexp (!output^"ldflags.sxp") ldflags)
