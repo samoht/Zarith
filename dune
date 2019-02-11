@@ -8,12 +8,12 @@
 
 (rule
  (targets libzarith_c_stubs.a)
- (deps   caml_z_x86_64.o caml_z.o)
+ (deps   caml_z_arch.o caml_z.o)
  (action (run ar rcs %{targets} %{deps})))
 
 (rule
  (targets dllzarith_c_stubs.so)
- (deps   caml_z_x86_64.o caml_z.o)
+ (deps   caml_z_arch.o caml_z.o)
  (action (run %{cc} -shared -o %{targets} %{deps})))
 
 (executable
@@ -23,12 +23,17 @@
 
 (rule
   (targets z.ml z.mli z_features.h)
-  (deps (:script z_pp.exe) z_pp.ml z.mlp z.mlip META caml_z_x86_64.S)
-  (action (run %{script} -ov %{ocaml_version} x86_64)))
+  (deps (:script z_pp.exe) z_pp.ml z.mlp z.mlip META caml_z_arch.S)
+  (action (run %{script} -ov %{ocaml_version} %{read-lines:config/arch})))
 
 (rule
-  (targets caml_z_x86_64.o)
-  (deps (:s caml_z_x86_64.S) zarith.h)
+  (targets caml_z_arch.S)
+  (deps caml_z_arm.S caml_z_i686.S caml_z_x86_64.S caml_z_x86_64_mingw64.S)
+  (action (copy caml_z_%{read-lines:config/arch}.S caml_z_arch.S)))
+
+(rule
+  (targets caml_z_arch.o)
+  (deps (:s caml_z_arch.S) zarith.h)
   (action (run %{cc} %{read-lines:config/asflags} -c %{s} -o %{targets})))
 
 (rule
