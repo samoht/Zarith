@@ -21,7 +21,7 @@ let darwin_def word_size =
 
 let arm_def = "arm", [], []
 
-let no_def = "", [], []
+let no_def = "none", [], []
 
 let extract_from_target word_size str =
   let reg_all = "\\(.*\\)"
