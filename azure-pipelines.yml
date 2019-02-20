@@ -37,14 +37,6 @@ jobs:
   steps:
   - script: ./.azure-pipelines.sh
     displayName: Build
-  - task: PublishTestResults@2
-    inputs:
-      testResultsFormat: 'JUnit'
-      testResultsFiles: '_build/default/tests/*.xml'
-      searchFolder: $(Build.SourcesDirectory)
-      failTaskOnFailedTests: true
-      testRunTitle: "Package Tests"
-      buildPlatform: amd64-darwin
 - job: Windows
   variables:
     CYGWIN_ROOT: $(System.Workfolder)\cygwin
