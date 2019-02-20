@@ -13,14 +13,6 @@ jobs:
     inputs:
       artifactName: 'binaries'
       targetPath: '_build/install/default/'
-  - task: PublishTestResults@2
-    inputs:
-      testResultsFormat: 'JUnit'
-      testResultsFiles: '_build/default/tests/*.xml'
-      searchFolder: $(Build.SourcesDirectory)
-      failTaskOnFailedTests: true
-      testRunTitle: "Package Tests"
-      buildPlatform: amd64-linux
 - job: LinuxDistros
   pool:
     vmImage: 'ubuntu-16.04'
