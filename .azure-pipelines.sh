@@ -128,6 +128,7 @@ yes)
 esac
 
 if [ "$TEST_DISTRIB" = "yes" ]; then
+  opam pin add -n --dev odoc
   opam install -y dune-release odoc
   dune build @doc
   dune-release distrib
