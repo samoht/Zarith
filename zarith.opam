@@ -13,7 +13,7 @@ build: [
  [ "dune" "build" "-p" name "-j" jobs ]
 ]
 depends: [
-  "ocaml" {>="4.03.0"}
+  "ocaml" {>="4.05.0"}
   "dune" {build}
   "conf-gmp"
 ]
