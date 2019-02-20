@@ -7,14 +7,9 @@
   (wrapped false))
 
 (rule
- (targets libzarith_c_stubs.a)
+ (targets libzarith_c_stubs%{ext_lib} dllzarith_c_stubs%{ext_dll})
  (deps   caml_z_arch.o caml_z.o)
- (action (run ar rcs %{targets} %{deps})))
-
-(rule
- (targets dllzarith_c_stubs.so)
- (deps   caml_z_arch.o caml_z.o)
- (action (run %{cc} -shared -o %{targets} %{deps})))
+ (action (run ocamlmklib -o zarith_c_stubs %{deps})))
 
 (executable
  (name z_pp)

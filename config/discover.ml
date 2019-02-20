@@ -16,8 +16,8 @@ let cygwin_def word_size =
 
 let darwin_def word_size =
   match word_size with
-  | "64" -> "x86_64", ["-DZ_UNDERSCORE_PREFIX";"-DZ_MACOS"], ["-arch x86_64"]
-  | _ -> "i686", ["-DZ_UNDERSCORE_PREFIX";"-DZ_MACOS"], ["-arch i386"]
+  | "64" -> "x86_64", ["-DZ_UNDERSCORE_PREFIX";"-DZ_MACOS"], []
+  | _ -> failwith "Darwin only supports 64-bit compilation"
 
 let arm_def = "arm", [], []
 
