@@ -1,0 +1,32 @@
+(library
+  (name zarith_unix)
+  (public_name zarith.unix)
+  (c_library_flags (:include ../../config/base-ldflags.sxp))
+  (self_build_stubs_archive (zarith_base_c))
+  (modules z q big_int_Z)
+  (libraries mirage-unix)
+  (optional)
+  (implements zarith)
+  (variant unix))
+
+(rule
+ (targets libzarith_base_c_stubs.a)
+ (deps   caml_z_arch.o caml_z.o)
+ (action (run ar rcs %{targets} %{deps})))
+
+(rule
+ (targets dllzarith_base_c_stubs.so)
+ (deps   caml_z_arch.o caml_z.o)
+ (action (run %{cc} -shared -o %{targets} %{deps})))
+
+(rule
+  (targets caml_z_arch.o)
+  (deps (:s caml_z_arch.S) zarith.h)
+  (action (run %{cc} %{read-lines:../../config/base-asflags} -c %{s} -o %{targets})))
+
+(rule
+  (targets caml_z.o)
+  (deps (:c caml_z.c) zarith.h z_features.h)
+  (action (run %{cc} %{read-lines:../../config/base-cflags} -c %{c} -o %{targets})))
+
+(include ../dune.inc)

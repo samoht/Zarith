@@ -35,8 +35,8 @@
 
 (rule
   (targets z.mlip)
-  (deps ../zarith-virtual/z.mlip)
-  (action (copy ../zarith-virtual/z.mlip z.mlip)))
+  (deps ../zarith/z.mlip)
+  (action (copy ../zarith/z.mlip z.mlip)))
 (rule
   (targets caml_z.c)
   (deps ../caml_z.c)

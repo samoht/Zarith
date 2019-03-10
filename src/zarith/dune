@@ -1,29 +1,27 @@
 (library
   (name zarith)
   (public_name zarith)
-  (c_library_flags (:include ../../config/base-ldflags.sxp))
-  (self_build_stubs_archive (zarith_base_c))
+  (virtual_modules z q big_int_Z)
   (modules z q big_int_Z)
-  (implements zarith-virtual))
+  (wrapped false)
+  (default_implementation zarith.unix))
+(rule
+  (targets z.mli)
+  (deps (:script z_pp.exe) z_pp.ml z.mlip ../../META caml_z_arch.S)
+  (action (run %{script} -mli -ov %{ocaml_version} %{read-lines:../../config/arch})))
 
 (rule
- (targets libzarith_base_c_stubs.a)
- (deps   caml_z_arch.o caml_z.o)
- (action (run ar rcs %{targets} %{deps})))
+  (targets caml_z_arch.S)
+  (deps ../caml_z_arm.S ../caml_z_i686.S ../caml_z_x86_64.S ../caml_z_x86_64_mingw64.S)
+  (action (copy ../caml_z_%{read-lines:../../config/arch}.S caml_z_arch.S)))
+
+
+(executable
+ (name z_pp)
+ (modules z_pp)
+ (libraries str))
 
 (rule
- (targets dllzarith_base_c_stubs.so)
- (deps   caml_z_arch.o caml_z.o)
- (action (run %{cc} -shared -o %{targets} %{deps})))
-
-(rule
-  (targets caml_z_arch.o)
-  (deps (:s caml_z_arch.S) zarith.h)
-  (action (run %{cc} %{read-lines:../../config/base-asflags} -c %{s} -o %{targets})))
-
-(rule
-  (targets caml_z.o)
-  (deps (:c caml_z.c) zarith.h z_features.h)
-  (action (run %{cc} %{read-lines:../../config/base-cflags} -c %{c} -o %{targets})))
-
-(include ../dune.inc)
+  (targets z_pp.ml)
+  (deps ../z_pp.ml)
+  (action (copy ../z_pp.ml z_pp.ml)))

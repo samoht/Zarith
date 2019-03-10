@@ -13,10 +13,9 @@ build: [
   ["dune" "build" "-p" name "-j" jobs]
 ]
 depends: [
-  "ocaml" {>="4.03.0"}
-  "dune" {build}
+  "ocaml" {>= "4.03.0"}
+  "dune" {build & >= "1.8"}
   "conf-gmp"
-  "zarith-virtual"
 ]
 synopsis:
   "Implements arithmetic and logical operations over arbitrary-precision integers"
@@ -27,3 +26,4 @@ arithmetic over big integers. Small integers are represented as Caml
 unboxed integers, for speed and space economy."""
 name: "zarith"
 version: "1.7"
+depopts: ["gmp-freestanding" "ocaml-freestanding" "mirage-xen" "mirage-unix"]
