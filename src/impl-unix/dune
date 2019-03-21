@@ -4,8 +4,6 @@
   (c_library_flags (:include ../../config/base-ldflags.sxp))
   (self_build_stubs_archive (zarith_base_c))
   (modules z q big_int_Z)
-  (libraries mirage-unix)
-  (optional)
   (implements zarith)
   (variant unix))
 

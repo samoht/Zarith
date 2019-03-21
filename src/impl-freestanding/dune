@@ -1,12 +1,11 @@
 (library
   (name zarith_freestanding)
-  (public_name zarith.freestanding)
+  (public_name zarith-freestanding)
   (libraries ocaml-freestanding)
   (c_library_flags (:include ../../config/freestanding-ldflags.sxp))
   (self_build_stubs_archive (zarith_freestanding_c))
   (modules z q big_int_Z)
   (no_dynlink)
-  (optional)
   (implements zarith)
   (variant freestanding))
 

@@ -1,11 +1,10 @@
 (library
   (name zarith_xen)
-  (public_name zarith.xen)
+  (public_name zarith-xen)
   (c_library_flags (:include ../../config/xen-ldflags.sxp))
   (self_build_stubs_archive (zarith_xen_c))
   (modules z q big_int_Z)
   (libraries mirage-xen)
-  (optional)
   (implements zarith)
   (variant xen))
 
