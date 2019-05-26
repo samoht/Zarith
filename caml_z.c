@@ -1740,7 +1740,6 @@ CAMLprim value ml_z_gcd(value arg1, value arg2)
     /* fast path */
     intnat a1 = Long_val(arg1);
     intnat a2 = Long_val(arg2);
-    if (!a1 || !a2) ml_z_raise_divide_by_zero();
     if (a1 < 0) a1 = -a1;
     if (a2 < 0) a2 = -a2;
     if (a1 < a2) { intnat t = a1; a1 = a2; a2 = t; }
@@ -1759,52 +1758,55 @@ CAMLprim value ml_z_gcd(value arg1, value arg2)
     mp_size_t sz, pos1, pos2, limb1, limb2, bit1, bit2, pos, limb, bit, i;
     Z_DECL(arg1); Z_DECL(arg2);
     Z_ARG(arg1);  Z_ARG(arg2);
-    if (!size_arg1 || !size_arg2) ml_z_raise_divide_by_zero();
-    /* copy args to tmp storage & remove lower 0 bits */
-    pos1 = mpn_scan1(ptr_arg1, 0);
-    pos2 = mpn_scan1(ptr_arg2, 0);
-    limb1 = pos1 / Z_LIMB_BITS;
-    limb2 = pos2 / Z_LIMB_BITS;
-    bit1 = pos1 % Z_LIMB_BITS;
-    bit2 = pos2 % Z_LIMB_BITS;
-    size_arg1 -= limb1;
-    size_arg2 -= limb2;
-    tmp1 = ml_z_alloc(size_arg1 + 1);
-    tmp2 = ml_z_alloc(size_arg2 + 1);
-    Z_REFRESH(arg1);
-    Z_REFRESH(arg2);
-    if (bit1) {
-      mpn_rshift(Z_LIMB(tmp1), ptr_arg1 + limb1, size_arg1, bit1);
-      if (!Z_LIMB(tmp1)[size_arg1-1]) size_arg1--;
-    }
-    else ml_z_cpy_limb(Z_LIMB(tmp1), ptr_arg1 + limb1, size_arg1);
-    if (bit2) { 
-      mpn_rshift(Z_LIMB(tmp2), ptr_arg2 + limb2, size_arg2, bit2);
-      if (!Z_LIMB(tmp2)[size_arg2-1]) size_arg2--;
-    }
-    else ml_z_cpy_limb(Z_LIMB(tmp2), ptr_arg2 + limb2, size_arg2);
-    /* compute gcd of 2^pos1 & 2^pos2 */
-    pos = (pos1 <= pos2) ? pos1 : pos2;
-    limb = pos / Z_LIMB_BITS;
-    bit = pos % Z_LIMB_BITS;
-    /* compute gcd of arg1 & arg2 without lower 0 bits */
-    /* second argument must have less bits than first  */
-    if ((size_arg1 > size_arg2) ||
-        ((size_arg1 == size_arg2) && 
-         (Z_LIMB(tmp1)[size_arg1 - 1] >= Z_LIMB(tmp2)[size_arg1 - 1]))) {
-      r = ml_z_alloc(size_arg2 + limb + 1);
-      sz = mpn_gcd(Z_LIMB(r) + limb, Z_LIMB(tmp1), size_arg1, Z_LIMB(tmp2), size_arg2);
-    }
+    if (!size_arg1) r = arg2;
+    else if (!size_arg2) r = arg1;
     else {
-      r = ml_z_alloc(size_arg1 + limb + 1);
-      sz = mpn_gcd(Z_LIMB(r) + limb, Z_LIMB(tmp2), size_arg2, Z_LIMB(tmp1), size_arg1);
-    } 
-    /* glue the two results */
-    for (i = 0; i < limb; i++) 
-      Z_LIMB(r)[i] = 0;
-    Z_LIMB(r)[sz + limb] = 0;
-    if (bit) mpn_lshift(Z_LIMB(r) + limb, Z_LIMB(r) + limb, sz + 1, bit);
-    r = ml_z_reduce(r, limb + sz + 1, 0);
+      /* copy args to tmp storage & remove lower 0 bits */
+      pos1 = mpn_scan1(ptr_arg1, 0);
+      pos2 = mpn_scan1(ptr_arg2, 0);
+      limb1 = pos1 / Z_LIMB_BITS;
+      limb2 = pos2 / Z_LIMB_BITS;
+      bit1 = pos1 % Z_LIMB_BITS;
+      bit2 = pos2 % Z_LIMB_BITS;
+      size_arg1 -= limb1;
+      size_arg2 -= limb2;
+      tmp1 = ml_z_alloc(size_arg1 + 1);
+      tmp2 = ml_z_alloc(size_arg2 + 1);
+      Z_REFRESH(arg1);
+      Z_REFRESH(arg2);
+      if (bit1) {
+        mpn_rshift(Z_LIMB(tmp1), ptr_arg1 + limb1, size_arg1, bit1);
+        if (!Z_LIMB(tmp1)[size_arg1-1]) size_arg1--;
+      }
+      else ml_z_cpy_limb(Z_LIMB(tmp1), ptr_arg1 + limb1, size_arg1);
+      if (bit2) { 
+        mpn_rshift(Z_LIMB(tmp2), ptr_arg2 + limb2, size_arg2, bit2);
+        if (!Z_LIMB(tmp2)[size_arg2-1]) size_arg2--;
+      }
+      else ml_z_cpy_limb(Z_LIMB(tmp2), ptr_arg2 + limb2, size_arg2);
+      /* compute gcd of 2^pos1 & 2^pos2 */
+      pos = (pos1 <= pos2) ? pos1 : pos2;
+      limb = pos / Z_LIMB_BITS;
+      bit = pos % Z_LIMB_BITS;
+      /* compute gcd of arg1 & arg2 without lower 0 bits */
+      /* second argument must have less bits than first  */
+      if ((size_arg1 > size_arg2) ||
+          ((size_arg1 == size_arg2) && 
+           (Z_LIMB(tmp1)[size_arg1 - 1] >= Z_LIMB(tmp2)[size_arg1 - 1]))) {
+        r = ml_z_alloc(size_arg2 + limb + 1);
+        sz = mpn_gcd(Z_LIMB(r) + limb, Z_LIMB(tmp1), size_arg1, Z_LIMB(tmp2), size_arg2);
+      }
+      else {
+        r = ml_z_alloc(size_arg1 + limb + 1);
+        sz = mpn_gcd(Z_LIMB(r) + limb, Z_LIMB(tmp2), size_arg2, Z_LIMB(tmp1), size_arg1);
+      } 
+      /* glue the two results */
+      for (i = 0; i < limb; i++) 
+        Z_LIMB(r)[i] = 0;
+      Z_LIMB(r)[sz + limb] = 0;
+      if (bit) mpn_lshift(Z_LIMB(r) + limb, Z_LIMB(r) + limb, sz + 1, bit);
+      r = ml_z_reduce(r, limb + sz + 1, 0);
+    }
     Z_CHECK(r);
     CAMLreturn(r);
   }
@@ -2568,6 +2570,8 @@ void ml_z_mpz_set_z(mpz_t rop, value op)
   Z_DECL(op);
   Z_CHECK(op);
   Z_ARG(op);
+  if (size_op * Z_LIMB_BITS > INT_MAX)
+    caml_invalid_argument("Z: risk of overflow in mpz type");  
   mpz_realloc2(rop, size_op * Z_LIMB_BITS);
   rop->_mp_size = (sign_op >= 0) ? size_op : -size_op;
   ml_z_cpy_limb(rop->_mp_d, ptr_op, size_op);
@@ -2716,9 +2720,25 @@ CAMLprim value ml_z_pow(value base, value exp)
   CAMLlocal1(r);
   mpz_t mbase;
   intnat e = Long_val(exp);
+  mp_size_t sz, ralloc;
+  int cnt;
   if (e < 0) 
     caml_invalid_argument("Z.pow: exponent must be non-negative");
   ml_z_mpz_init_set_z(mbase, base);
+
+  /* Safe overapproximation of the size of the result.
+     In case this overflows an int, GMP may abort with a message
+     "gmp: overflow in mpz type". To avoid this, we test the size before
+     calling mpz_pow_ui and raise an OCaml exception.
+     Note: we lifted the computation from mpz_n_pow_ui.
+   */
+  sz = mbase->_mp_size;
+  if (sz < 0) sz = -sz;
+  cnt = sz > 0 ? ml_z_clz(mbase->_mp_d[sz - 1]) : 0;
+  ralloc = (sz * GMP_NUMB_BITS - cnt + GMP_NAIL_BITS) * e / GMP_NUMB_BITS + 5;
+  if (ralloc > INT_MAX)
+    caml_invalid_argument("Z.pow: risk of overflow in mpz type");
+
   mpz_pow_ui(mbase, mbase, e);
   r = ml_z_from_mpz(mbase);
   mpz_clear(mbase);
