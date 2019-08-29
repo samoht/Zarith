@@ -14,7 +14,7 @@ build: [
 ]
 depends: [
   "ocaml" {>= "4.03.0"}
-  "dune" {build & >= "1.9"}
+  "dune" {>= "1.9"}
   "ocaml-freestanding"
   "gmp-freestanding"
 ]
@@ -22,5 +22,3 @@ synopsis:
   "Implements arithmetic and logical operations over arbitrary-precision integers"
 description: """
 Freestanding implementation."""
-name: "zarith-freestanding"
-version: "1.7"
