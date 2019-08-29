@@ -31,7 +31,7 @@ ocamldep='ocamldep'
 ocamldoc='ocamldoc'
 ccinc="$CPPFLAGS"
 cclib="$LDFLAGS"
-asopt=''
+asopt="$ASFLAGS"
 ccdef=''
 mlflags="$OCAMLFLAGS"
 mloptflags="$OCAMLOPTFLAGS"
@@ -59,10 +59,12 @@ where options include:
   -gmp                 use GMP library (default if found)
   -mpir                use MPIR library instead of GMP
   -perf                enable performance statistics
+  -prefixnonocaml      add for non ocaml tool, e.g. -prefixnonocaml x86_64-w64-mingw32-
 
 Environment variables that affect configuration:
   CC                   C compiler to use (default: try gcc, then cc)
   CFLAGS               extra flags to pass to the C compiler
+  ASFLAGS              extra flags to pass to the assembler
   CPPFLAGS             extra includes, e.g. -I/path/to/gmp/include
   LDFLAGS              extra link flags, e.g. -L/path/to/gmp/lib
   OCAMLFLAGS           extra flags to pass to the ocamlc Caml compiler
@@ -99,6 +101,9 @@ while : ; do
             gmp='mpir';;
         -perf|--perf)
             perf='yes';;
+        -prefixnonocaml|--prefixnonocaml)
+            prefixnonocaml="$2"
+            shift;;
         *)
             echo "unknown option $1, try -help"
             exit 2;;
@@ -204,7 +209,8 @@ searchbinreq $ocamlc
 searchbinreq $ocamldep
 searchbinreq $ocamlmklib
 searchbinreq $ocamldoc
-searchbinreq $ar
+searchbin $ar
+if test $? -eq 0; then ar=$prefixnonocaml$ar; searchbinreq $ar; fi
 searchbinreq perl
 
 if test -n "$CC"; then
@@ -214,9 +220,15 @@ if test -n "$CC"; then
 elif ! searchbin 'gcc'; then
   cc='gcc'
   ccopt="-O3 -Wall -Wextra $CFLAGS"
-else
-  searchbinreq 'cc'
+elif ! searchbin $prefixnonocaml'gcc'; then
+  cc=$prefixnonocaml'gcc'
+  ccopt="-O3 -Wall -Wextra $CFLAGS"
+elif ! searchbin 'cc'; then
   cc='cc'
+  ccopt="-O3 -Wall -Wextra $CFLAGS"
+else
+  searchbinreq $prefixnonocaml'cc'
+  cc=$prefixnonocaml'cc'
   ccopt="-O3 -Wall -Wextra $CFLAGS"
 fi
 
@@ -241,11 +253,12 @@ fi
 
 # directories
 
-if test "$ocamllibdir" = "auto"; then ocamllibdir=`ocamlc -where`; fi
+if test "$ocamllibdir" = "auto"
+then ocamllibdir=`ocamlc -where | sed 's/\r$//'`
+fi
 
-# fails on Cygwin:
-# if test ! -f "$ocamllibdir/caml/mlvalues.h"
-# then echo "cannot find OCaml libraries in $ocamllibdir"; exit 2; fi
+if test ! -f "$ocamllibdir/caml/mlvalues.h"
+then echo "cannot find OCaml libraries in $ocamllibdir"; exit 2; fi
 ccinc="-I$ocamllibdir $ccinc"
 checkinc "caml/mlvalues.h"
 if test $? -eq 0; then echo "cannot include caml/mlvalues.h"; exit 2; fi
@@ -301,7 +314,15 @@ arch='none'
 case $host in
     x86_64-*linux-gnu|x86_64-kfreebsd-gnu)
         ccdef="-DZ_ELF -DZ_DOT_LABEL_PREFIX $ccdef"
-        arch='x86_64';;
+        if test $wordsize = 32; then
+            # 32-bit OCaml on a 64-bit host
+            arch='i686'
+            ccopt="-m32 $ccopt"
+            asopt="-m32 $asopt"
+        else
+            arch='x86_64'
+        fi
+        ;;
     i486-*linux-gnu|i686-*linux-gnu|i486-kfreebsd-gnu)
         ccdef="-DZ_ELF -DZ_DOT_LABEL_PREFIX $ccdef"
         arch='i686';;
@@ -464,4 +485,3 @@ configuration successful!
 now type "make" to build
 then type "make install" or "sudo make install" to install
 EOF
-
