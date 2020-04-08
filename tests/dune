@@ -8,9 +8,9 @@
   (name pi)
   (modules pi)
   (libraries zarith))
- 
-(alias
- (name runtest)
+
+(rule
+ (alias runtest)
  (deps pi.exe)
  (action (run ./pi.exe 500)))
 

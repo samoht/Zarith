@@ -47,47 +47,36 @@ let extract_from_target word_size str =
        no_def
 
 
+let inc = ref "."
+
+let set_include path =
+  let path =
+    if Filename.is_relative path then
+       Filename.concat (Sys.getcwd ()) path
+    else
+      path
+  in
+
+  let path = Filename.dirname path in
+  inc := path
+
 let inc_gmp = {|
   #include <gmp.h>
   int main() {return 0;}
 |}
 
-let inc_mpir = {|
-  #include <mpir.h>
-  int main() {return 0;}
-|}
-
-
-let check_code c code lib = C.c_test c code ~link_flags:["-l"^lib]
+let check_code c code lib =
+  C.c_test c code
+    ~c_flags:["-I" ^ !inc]
+    ~link_flags:["-L" ^ !inc; "-l"^lib]
 
 let check_gmp c = match check_code c inc_gmp "gmp" with
-  | true -> Some ("-DHAS_GMP", "-lgmp")
+  | true -> Some ("-DHAS_GMP",  "-I" ^ !inc)
   | false -> None
 
-let check_mpir c = match check_code c inc_mpir "mpir" with
-  | true -> Some ("-DHAS_MPIR", "-lmpir")
-  | false -> None
+let arg_includes = ("-gmp.h", Arg.String set_include, "Location of gmp.h")
 
-let check_gmp_or_mpir_raw c =
-  if not(C.c_test c inc_gmp || C.c_test c inc_mpir)
-  then failwith "Couldn't find GMP or MPIR"
-
-
-let check_gmp_or_mpir c =
-  match check_gmp c with
-  | None -> check_mpir c
-  | a -> a
-
-let param_cflags = ref []
-let param_ldflags = ref []
-
-let set_cflags str = param_cflags := String.split_on_char ' ' str
-let set_ldflags str = param_ldflags := String.split_on_char ' ' str
-
-let arg_cflags = ("-cflags", Arg.String set_cflags, "custom C flags")
-let arg_ldflags = ("-ldflags", Arg.String set_ldflags, "custom ld flags")
-
-let args = [arg_cflags; arg_ldflags]
+let args = [arg_includes]
 
 let () =
   C.main ~args ~name:"zarith" (fun c ->
@@ -97,17 +86,10 @@ let () =
     let stdlib_include = sprintf "-I%s" (C.ocaml_config_var_exn c "standard_library") in
     let cflags = stdlib_include :: ["-O3";"-Wall";"-Wextra"] in
     let defines = ["-DZ_OCAML_COMPARE_EXT"; "-DZ_OCAML_HASH"] in
-    let defines, ldflags =match !param_cflags, !param_ldflags with
-    | [], [] -> begin
-                  match check_gmp_or_mpir c with
-                  | Some (cflag,ldflag) -> cflag :: defines, [ldflag]
-                  | None -> failwith "Cannot find GMP nor MPIR"
-                end
-    | c_flags, ld_flags ->  begin
-                  match check_gmp_or_mpir c with
-                  | Some (cflag,_) -> cflag :: defines @ c_flags, ld_flags
-                  | None -> failwith "Cannot find GMP nor MPIR"
-                end
+    let defines, cflags =
+      match check_gmp c with
+      | Some (d, f) -> d :: defines, f :: cflags
+      | None -> failwith "Cannot find GMP"
     in
     let c_api_defines =
       match Ocaml_version.(compare ov Releases.v4_08) with
@@ -116,8 +98,6 @@ let () =
     let defines = defines @ c_api_defines @ arch_defines in
     let cflags = cflags @ opt @ defines in
     let asflags = defines @ opt in
-    C.Flags.write_sexp "cflags.sxp" cflags;
     C.Flags.write_lines "asflags" asflags;
     C.Flags.write_lines "cflags" cflags;
-    C.Flags.write_sexp "ldflags.sxp" ldflags;
     C.Flags.write_lines "arch" [machine])

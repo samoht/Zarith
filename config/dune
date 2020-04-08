@@ -3,8 +3,6 @@
  (libraries str dune.configurator))
 
 (rule
- (targets ldflags.sxp cflags.sxp cflags asflags arch)
+ (targets cflags asflags arch)
  (deps discover.exe)
- (action (run ./discover.exe)))
-
-
+ (action (run ./discover.exe -gmp.h %{lib:gmp:gmp.h})))

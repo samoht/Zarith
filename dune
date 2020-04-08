@@ -2,14 +2,14 @@
   (name zarith)
   (public_name zarith)
   (modules z q big_int_Z)
-  (c_library_flags (:include config/ldflags.sxp))
-  (self_build_stubs_archive (zarith_c))
+  (libraries gmp)
+  (foreign_archives zarith_c)
   (wrapped false))
 
 (rule
- (targets libzarith_c_stubs%{ext_lib} dllzarith_c_stubs%{ext_dll})
+ (targets libzarith_c%{ext_lib} dllzarith_c%{ext_dll})
  (deps   caml_z_arch.o caml_z.o)
- (action (run ocamlmklib -o zarith_c_stubs %{deps})))
+ (action (run ocamlmklib -o zarith_c %{deps})))
 
 (executable
  (name z_pp)
