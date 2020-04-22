@@ -1,5 +1,6 @@
 (library
   (name zarith)
+  (no_dynlink)
   (public_name zarith)
   (modules z q big_int_Z)
   (libraries gmp)
@@ -7,9 +8,9 @@
   (wrapped false))
 
 (rule
- (targets libzarith_c%{ext_lib} dllzarith_c%{ext_dll})
+ (targets libzarith_c%{ext_lib})
  (deps   caml_z_arch.o caml_z.o)
- (action (run ocamlmklib -o zarith_c %{deps})))
+ (action (run ocamlmklib -custom -o zarith_c %{deps})))
 
 (executable
  (name z_pp)
